@@ -3,6 +3,7 @@
 #include <thread>
 #include <filesystem>
 #include "ConeccionHTTP.h"
+#include "LogManager.h"
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -16,6 +17,7 @@ int main()
 
 	// Ejecutar funcion
 	GetXML(carpeta);
+	procesarXMLsYCrearLogs(carpeta);
 
 	std::cout << "Todos los servidores han sido lanzados desde XML.";
 	std::cin.get();

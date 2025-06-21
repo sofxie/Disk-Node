@@ -4,6 +4,7 @@
 #include <string>
 #include "Include/tinyxml2.h"
 #include "Log.h"
+#include "LogManager.h"
 
 namespace fs = std::filesystem;
 using namespace tinyxml2;
