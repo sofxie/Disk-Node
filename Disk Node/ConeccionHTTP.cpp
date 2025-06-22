@@ -44,6 +44,8 @@ bool ConeccionHTTP::ReadXML(const std::string& xmlPath, std::string& ip, int& po
     ip = ipText;
     port = std::stoi(portText);
     path = pathText;
+    // Guardamos el path como atributo de clase
+    pathConfigurado = path;
 
     return true;
 }
@@ -98,7 +100,7 @@ void ConeccionHTTP::run(int port, std::string addr) {
         }
 
         int bytes = recv(new_wsocket, buff, BUFFER_SIZE, 0);
-        if (bytes < 0) {
+        if (bytes <= 0) {
             std::cout << "No se pudo leer request" << std::endl;
             closesocket(new_wsocket);
             continue;
@@ -108,45 +110,34 @@ void ConeccionHTTP::run(int port, std::string addr) {
         size_t pos = request.find("\r\n\r\n");
         std::string body = (pos != std::string::npos) ? request.substr(pos + 4) : "";
 
-        json j;
         json responseJson;
 
-        if (body.empty()) {
-            responseJson["status"] = "activo";
-            responseJson["mensaje"] = "Servidor HTTP";
-        }
-        else {
+        if (!body.empty()) {
             try {
-                j = json::parse(body);
-                std::string logEntry;
+                json j = json::parse(body);
 
-                if (!j["comando"].is_null()) {
-                    std::string comando = j["comando"];
-                    std::cout << "Comando: " << comando << std::endl;
-                    logEntry += "Comando: " + comando;
-                }
-
-                if (!j["contenido"].is_null()) {
-                    std::string contenido = j["contenido"];
-                    std::cout << "Contenido: " << contenido << std::endl;
-                    logEntry += " | Contenido: " + contenido;
-                }
-
-                if (!logEntry.empty() && logger) {
+                // Loguear comandos recibidos
+                if (logger) {
+                    std::string logEntry = "Comando recibido: " + j.dump();
                     logger->addEntry(logEntry);
                 }
 
-                std::cout << "JSON recibido: " << j.dump() << std::endl;
+                // Procesar comando con la función
+                responseJson = rCommand(j);
             }
             catch (const json::parse_error& e) {
                 std::cout << "Error al parsear JSON: " << e.what() << std::endl;
                 responseJson["status"] = "error";
-                responseJson["mensaje"] = "Error al procesar el JSON";
+                responseJson["mensaje"] = "JSON mal formado: " + std::string(e.what());
 
                 if (logger) {
                     logger->addEntry("Error al parsear JSON: " + std::string(e.what()));
                 }
             }
+        }
+        else {
+            responseJson["status"] = "activo";
+            responseJson["mensaje"] = "Servidor HTTP escuchando";
         }
 
         std::string responseBody = responseJson.dump();
@@ -170,8 +161,96 @@ void ConeccionHTTP::run(int port, std::string addr) {
             }
             totalBytesSent += bytesSent;
         }
+
         closesocket(new_wsocket);
     }
 
+    closesocket(wsocket);
     WSACleanup();
+}
+
+// Responder al JSON 
+json ConeccionHTTP::rCommand(const json& j) {
+    json resp;
+    std::string cmd = j.value("comando", "");
+    resp["comando"] = cmd;
+
+    if (cmd == "status") {
+        std::string carpeta = pathConfigurado;
+        json archivosJson = json::array();
+        int id = 1;
+
+        // Recorre todos los archivos (sin filtrar por extensión)
+        for (const auto& entry : std::filesystem::directory_iterator(carpeta)) {
+            if (entry.is_regular_file()) {
+                std::string nombre = entry.path().filename().string();
+                uintmax_t tamano = std::filesystem::file_size(entry);
+
+                json archivo;
+                archivo["id"] = id++;
+                archivo["nombre"] = nombre;
+                archivo["estado"] = (tamano == 0) ? "vacío" : "activo";
+
+                archivosJson.push_back(archivo);
+            }
+        }
+
+        // Formato de salida
+        std::stringstream resultado;
+        resultado << std::left;
+        resultado << "ID   | Nombre                                                 | Estado\n";
+        resultado << "-----|---------------------------------------------------------------|----------------\n";
+
+        for (const auto& archivo : archivosJson) {
+            resultado
+                << std::setw(5) << archivo["id"].get<int>() << " | "
+                << std::setw(22) << archivo["nombre"].get<std::string>() << " | "
+                << archivo["estado"].get<std::string>() << "\n";
+        }
+
+        resp["status"] = "ok";
+        resp["archivos"] = archivosJson;
+        resp["texto_formateado"] = resultado.str();
+    }
+
+    else if (cmd == "delete") {
+        std::string archivo = j.value("archivo", "");
+        std::string ruta = pathConfigurado + "\\" + archivo;
+
+        if (std::filesystem::exists(ruta)) {
+            std::filesystem::remove(ruta);
+            resp["status"] = "ok";
+            resp["mensaje"] = "Archivo eliminado: " + archivo;
+        }
+        else {
+            resp["status"] = "error";
+            resp["mensaje"] = "Archivo no encontrado: " + archivo;
+        }
+    }
+
+    else if (cmd == "guardar") {
+        std::string contenido = j.value("contenido", "");
+        std::string archivo = j.value("archivo", "");
+        std::string ruta = pathConfigurado + "\\" + archivo;
+
+        std::ofstream out(ruta);
+        if (out.is_open()) {
+            out << contenido;
+            out.close();
+            resp["status"] = "ok";
+            resp["mensaje"] = "Contenido guardado en: " + archivo;
+        }
+        else {
+            resp["status"] = "error";
+            resp["mensaje"] = "No se pudo abrir archivo: " + archivo;
+        }
+    }
+
+    else {
+        resp["status"] = "error";
+        resp["mensaje"] = "Comando desconocido: " + cmd;
+    }
+
+    std::cout << resp;
+    return resp;
 }

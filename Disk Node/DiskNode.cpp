@@ -43,18 +43,19 @@ void GetXML(const std::string& carpetaPath) {
 
 // Lanzar un servidor con parametros del XML
 void InitServer(const std::string& archivoXML) {
+	ConeccionHTTP* conn = new ConeccionHTTP();
 	std::string ip, path;
 	int port;
-
-	ConeccionHTTP* conn = new ConeccionHTTP();
 
 	if (conn->ReadXML(archivoXML, ip, port, path)) {
 		std::cout << "[OK] Configuración cargada desde: " << archivoXML << "\n";
 		std::cout << "IP: " << ip << ", Puerto: " << port << ", Carpeta: " << path << "\n";
 
-		conn->run(port, ip); // ¡Esto ya ejecuta el servidor!
+		conn->run(port, ip); 
 	}
 	else {
 		std::cerr << "[ERROR] No se pudo leer el archivo: " << archivoXML << "\n";
 	}
+	delete conn;
+
 }
