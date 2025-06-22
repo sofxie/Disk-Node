@@ -125,12 +125,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ConeccionHTTP.cpp" />
+    <ClCompile Include="DiskData.cpp" />
     <ClCompile Include="DiskNode.cpp" />
     <ClCompile Include="Include\tinyxml2.cpp" />
+    <ClCompile Include="LogManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConeccionHTTP.h" />
     <ClInclude Include="Include\tinyxml2.h" />
+    <ClInclude Include="Log.h" />
+    <ClInclude Include="LogManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
