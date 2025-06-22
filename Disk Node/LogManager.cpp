@@ -36,8 +36,8 @@ void procesarXMLsYCrearLogs(const std::string& carpetaXMLs) {
                         std::string nombreNodo = fs::path(ruta).filename().string();
 
                         // Crear log y agregar entrada de prueba
-                        Log logger(ruta + "/" + nombreNodo);
-                        logger.addEntry("Log inicial para " + nombreNodo);
+                        //Log logger(ruta + "/" + nombreNodo);
+                        //logger.addEntry("Log inicial para " + nombreNodo);
                     }
                 }
             }
