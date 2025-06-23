@@ -4,6 +4,8 @@
 #include <filesystem>
 #include "ConeccionHTTP.h"
 #include "LogManager.h"
+#include "StorageMonitor.h"
+
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -21,6 +23,11 @@ int main()
 
 	std::cout << "Todos los servidores han sido lanzados desde XML.";
 	std::cin.get();
+
+	std::string rutaXMLs = "C:\\PDF";
+
+	std::thread monitorThread(verificarTamanosPeriodicamente, rutaXMLs);
+	monitorThread.detach(); // Corre en segundo plano
 	return 0;
 }
 

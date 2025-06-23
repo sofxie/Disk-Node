@@ -13,7 +13,7 @@ private:
     std::vector<std::string> entries;
     std::mutex logMutex;
     std::string currentLogFile;
-    const uint64_t MAX_FILE_SIZE = 209'715'200; // 200 MB en bytes
+    const uint64_t MAX_FILE_SIZE = 104'857'600; // 100 MB en bytes
 
     std::string getTimestamp() {
         std::time_t now = std::time(nullptr);
